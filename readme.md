@@ -374,7 +374,35 @@ If we can find nearest neighbors **in a meaningful way,** that means we know a c
 
 ## Curve Adjustment
 
-...
+We adjust the curves within our concept of a batch. This is our geometric program search!
+
+The relevant piece here is that to train our adjustment model **we use the same feature set used to train the recognition model**. We've slid from System 1 to System 2 without changing our essential architecture.
+
+We do, however, train a new model to do the adjustment. It consists of three parallel encoding branches that map different input features into a shared hidden space, like so:
+
+1. The grid encoder processes the differences between reference and target grid features
+2. the sequence encoder handles sequence-level information from references,
+3. and the curve encoder directly processes reference curve shapes.
+
+These three encodings are combined and passed through an adjustment network that learns to generate transformed curves. The model is trained using a multi-objective loss that balances accurate curve prediction (MSE) with preservation of shape characteristics (through derivative matching) and curve smoothness (through second derivative regularization), thereby teaching the network to adjust curves while maintaining their essential geometric properties.
+
+Let's see the results:
+
+| Actual Batch | Batch With Prediction | Actual vs. Predicted |
+|---------|---------|---------|
+| ![A](img/batch_curve_prediction/reference_and_test_actual.png) | ![B](img/batch_curve_prediction/reference_and_test_predicted.png) | ![C](img/batch_curve_prediction/test_actual_vs_predicted.png) |
+
+The case above, for a sequence of 5 transformations, looks broadly reasonable. Let's try a longer, more complex sequence:
+
+| Actual Batch | Batch With Prediction | Actual vs. Predicted |
+|---------|---------|---------|
+| ![A](img/batch_curve_prediction/reference_and_test_actual_fail.png) | ![B](img/batch_curve_prediction/reference_and_test_predicted_fail.png) | ![C](img/batch_curve_prediction/test_actual_vs_predicted_fail.png) |
+
+In this case, our model does not accurately map the adjusted curve.
+
+Further work is required to improve accuracy. We may be able to increase performance by training cluster-specific models with more curve coherence per cluster, or increasing the number of reference curves per batch.
+
+In any case, the adjusted curve provides us with a decodable program.
 
 ## Dynamic DSL
 
@@ -425,15 +453,17 @@ The important conclusion here is that **this is a property of any embedding base
 
 ## Appendix: Search
 
-"Search" in the context of our work means something more like "sequence reconstruction." Our classifier based "search" is an artifact of our ill-trained classifier: instead of simply identifying the known transformation with 100% certainty, we must move through different combinations of the top-N predictions.
+Search is a directionally distinct approach to the ARC challenge than what we've discussed. We implement a simple search, a beam search, and a reconstruction "search" based on our classifier.
 
-During search, we're given a start and end grid (this is something we would perform on ARC "train" examples); we must find the path from A to B via DSL transformation.
+We iterate over different states according to the probability of a given transformation, like so:
 
 | Success | Failure |
 |---------|---------|
 | ![A](img/search/search_animation_success.gif) | ![B](img/search/search_animation_failure.gif) |
 
-To understand the effects of the classifier, observe the effects of different search methods. Here, we use a simple hamming distance as a measure between grids.
+Our classifier based "search" is an artifact an imprecise classifier: instead of simply identifying the known transformation with 100% certainty, we must move through different combinations of the top-N predictions. However, future classifiers are unlikely to be 100% accurate, so a functionally intelligent system will need some flexibility in finding the solution. In geometric terms, this might be akin to expanding the radius of exploration from the line of the curve.
+
+To understand the effects of the classifier, observe the effects of different search methods. In this case, we use a simple hamming distance as a measure between grids.
 
 | Simple | Beam | Classifier |
 |---------|---------|---------|
@@ -444,3 +474,5 @@ Here, we use our more meaningful grid embeddings.
 | Simple | Beam | Classifier |
 |---------|---------|---------|
 | ![A](img/search/simple_with_embeddings.png) | ![B](img/search/beam_with_embeddings.png) | ![C](img/search/reconstruct_with_embeddings.png) |
+
+We see that classifier has more success in general at reconstructing longer sequences in the same amount of time. 
