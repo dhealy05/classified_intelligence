@@ -451,6 +451,41 @@ Expansion management strategies require further study. Likely there is an optima
 
 The important conclusion here is that **this is a property of any embedding based system.** Properly seeded DSLs will be expandable in most domains.
 
+## Future Work
+
+By representing program synthesis geometrically, we create a legible way to measure and improve intelligent systems. Let's examine what this means in practice:
+
+### Common Embedding APIs
+
+We can standardize how different systems interact with their domains:
+
+| Action | Object | Metric |
+|-----------|-------------|-------------|
+| Embed | Grids | Descriptiveness |
+| Classify | Diffs | Accuracy |
+| Embed | Sequence | Batch population statistics |
+| Modify | Curve | Target curve similarity |
+
+Each component above can be measured and improved independently. This not only opens up future work for ARC, it opens up the possibility of corresponding work in new domains.
+
+Optimistically, I recall the open source image model improvements after the release of Stable Diffusion - independent work was done on LoRAs, VAEs, text encoders, etc., as users improved their own.
+
+### Implications for Intelligence
+
+The idea I find most interesting here is that this system derives naturally from the properties of a descriptive embedding space. It seems true that any similar system would have similar properties:
+
+- There will always be a diff between states
+- We can always try to identify it
+- We can always observe characteristics of a batch
+- We can always infer unknown qualities from known qualities to cluster
+- We can always infer unknown qualities from known qualities to modify
+
+Does that tell us something about the nature of intelligence? How does it fit into Chollet's measure?
+
+I think the structure here seems like a plausible base layer for intelligence. Rather than one embedding space, a stack, working together; groups of curves rather than a single curve at a time; a slow accumulation of observations leading to more 'operations' as the system reclusters and reclassifies.
+
+Further work is required; I will continue to accumulate observations.
+
 ## Appendix: Search
 
 Search is a directionally distinct approach to the ARC challenge than what we've discussed. We implement a simple search, a beam search, and a reconstruction "search" based on our classifier.
@@ -475,4 +510,4 @@ Here, we use our more meaningful grid embeddings.
 |---------|---------|---------|
 | ![A](img/search/simple_with_embeddings.png) | ![B](img/search/beam_with_embeddings.png) | ![C](img/search/reconstruct_with_embeddings.png) |
 
-We see that classifier has more success in general at reconstructing longer sequences in the same amount of time. 
+We see that classifier has more success in general at reconstructing longer sequences in the same amount of time.
