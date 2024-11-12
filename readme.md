@@ -34,13 +34,13 @@ As such, grid generation is fundamental to our understanding of the ARC challeng
 
 ### Generation
 
-Typically, I generated four types of grid in equal buckets:
+Typically, I generate four types of grid in equal buckets:
 
 | Random | Sparse | Shape | Learned |
 |---------|---------|---------|---------|
 | ![A](img/generate/random.png) | ![B](img/generate/sparse.png) | ![C](img/generate/shape.png) | ![D](img/generate/learned.png) |
 
-And I moved them to a padded 3D representation of 0s and 1s, such that instead of color, 0-9 became a depth measurment:
+And I move them to a padded 3D representation of 0s and 1s, such that instead of color, 0-9 became a depth measurement:
 
 |  |  |  |  |
 |---------|---------|---------|---------|
@@ -48,7 +48,7 @@ And I moved them to a padded 3D representation of 0s and 1s, such that instead o
 
 Visual understanding of 2D grids may be useful at times, but typically we will assume the grids are 3D.
 
-"Learned" grids are made of statistically-likely shapes counted from the ARC training data. The rest are described by their name. Diversifying the grid generation was a way to ensure robustness and sanity check across different buckets.
+"Learned" grids are made of statistically-likely shapes counted from the ARC training data. The rest are described by their name. Diversifying the grid generation is a way to ensure robustness and sanity check across different buckets.
 
 ### Manipulation
 
@@ -111,12 +111,12 @@ In the example above, note the similarities in the shape of the curve. Examples 
 | ![A](img/seq/centroid_normalization.gif) |
 
 In the example above, in our curves are sufficiently similar that in the final frame, the blue and the green are indistinguishable. Below, we observe the same concept, but this time we apply a different transformation sequence to 3 different starting grids. Note the difference!
+
 | 1 |
 |---------|
 | ![A](img/seq/centroid_normalization_rand.gif) |
 
-
-The key takaway here is twofold:
+The key takeaway here is twofold:
 
 1. Batchmate sequences will legibly reduce to the same transformations; non batchmate sequences will not.
 2. These sequences are in fact a "program"! If we can draw similar curves, we can perform program synthesis.
@@ -176,7 +176,7 @@ However, they don't seem to cluster legibly:
 |------------|
 | ![A](img/classify/transformation_cluster_diff.png) |
 
-Luckily, we are not without resources. We train a classifier to distinguish operations via their diffs. Using the input feature (start embedding, end embedding, embedding diff) and a class label with the transformation name, we train an ensemble of binary classifiers - one classifier for each DSL function. These predictions are not perfect, so we aggregate the top 5 highest scores for the ensemble and achieve the following accuracy:
+Luckily, we are not without resources. We train a classifier to distinguish operations via their diffs. Using the input feature {start embedding, end embedding, embedding diff} and a class label with the transformation name, we train an ensemble of binary classifiers - one classifier for each DSL function. These predictions are not perfect, so we aggregate the top 5 highest scores for the ensemble and achieve the following accuracy:
 
 | |
 |---------|
@@ -191,6 +191,7 @@ Ensemble accuracy is low hanging fruit for future improvement, but at 84%, we ca
 The left hand side shows raw prediction clusters; the right, the actual transformations. Worth noting is that within our fairly small DSL, we have similar functions - rotate clockwise or counterclock, flip vertical or horizontal, etc. - and we see similar functions clustering together.
 
 Now that we understand grid diffs and embedding diffs, we should try to understand how they relate. We'll find the magnitudes for each for a set of transformations:
+
 | |
 |---------|
 | ![A](img/classify/grid_vs_embedding_diffs_color_coded.png) |
@@ -212,23 +213,25 @@ Let's start with a control:
 |---------|---------|---------|
 | ![A](img/batch_features/batch_similarity_diff_rand.png) | ![B](img/batch_features/batch_similarity_diff_dist_rand.png) | ![C](img/batch_features/tsne_seq_rand.png)|
 
-"Population Mean" here refers to our average batch-level similarity, where "Global Mean" refers to the random, 1:1 similarity independent of batches. They are the same here because we're using a random variable for every batch. But when we look at the centroid similarity through grid space:
+"Population Mean" here refers to our average batch-level similarity, where "Global Mean" refers to the random, 1:1 similarity independent of batches. They are the same here because we're using a random variable for every batch. In the t-SNE visualization, we are representing each sequence as a point, and the associated batch as a triangle between all three points.
+
+Remember the normalized curves comparison we observed earlier? Here's what that looks like at a population level:
 
 | Scatter | Distribution | t-SNE |
 |---------|---------|---------|
 | ![A](img/batch_features/batch_similarity_curve.png) | ![B](img/batch_features/batch_similarity_curve_dist.png) | ![C](img/batch_features/tsne_seq_curve.png)|
 
-We see some genuine separation. This is the population level view of the normalized curves comparison we observed earlier.
+We see some genuine separation here; batches are sufficiently similar that we can observe unique batch level characteristics consistently.
 
 Now, remember the diffs we observed with the heatmap? For a sequence of transformations, we end up with a sequence of diffs, too. We can concatenate them, and this constitutes an embedding space curve. It's the embedding-twin of the real space curve we observed earlier. This is the basis of our program writing: **if we know what each DSL operation looks like in embedding terms, we can decode a curve into a functional program.**
 
-Below, we look at the curves on a per batch basis. These are normalized for comparison, but unadjusted, meaning they come from the raw differences between grid embeddings.
+Below, we look at the *embedding* curves on a per batch basis. These are normalized for comparison, but unadjusted, meaning they come from the raw differences between grid embeddings.
 
 | Scatter | Distribution | t-SNE |
 |---------|---------|---------|
 | ![A](img/batch_features/batch_similarity_diff.png) | ![B](img/batch_features/batch_similarity_diff_dist.png) | ![C](img/batch_features/tsne_seq_diff.png)|
 
-Actually, these are not that different from what we see with the curves, indicating we do have some legibility on an unadjusted basis.
+Actually, these are not that different from what we see with the grid space curves, indicating we do have some legibility on an unadjusted basis.
 
 We can "adjust" by predicting with our classifier, just as we did before:
 
@@ -289,7 +292,7 @@ But we can use our new batches to look at the variables which matter. The follow
 | ![A](img/rebatch/batch_similarity_curve_rebatch.png) | ![B](img/rebatch/batch_similarity_diff_rebatch.png) | ![C](img/rebatch/batch_similarity_raw_embedding_rebatch.png)|
 | ![A](img/rebatch/similarity_distribution_curve_global_mean_similarity_rebatch.png) | ![B](img/rebatch/similarity_distribution_diff_global_mean_similarity_rebatch.png) | ![C](img/rebatch/similarity_distribution_raw_embedding_global_mean_similarity_rebatch.png)|
 
-With curve and diff, we see some small separation between random baseline and population mean. So it's working, but it's not a particularly big difference; in fact, it's the smallest gap we've seen since our random control.
+With grid space normalized curve (curve) and embedding space curve (diff), we see some small separation between random baseline and population mean. So it's working, but it's not a particularly big difference; in fact, it's the smallest gap we've seen since our random control.
 
 In contrast, and to reinforce what we're doing, observe the actual embedding similarity in the third column - since we're using the embedding as our clustering mechanism, the gap is extremely large, as we'd expect.
 
@@ -304,7 +307,7 @@ To test it, we'll look at the ARC sample data. We embed each grid pair using our
 1. In the first case, we'll leave the batches as we found them - recall that each batch is a single challenge
 2. In the second case, we'll randomize the batches first, using the same rebatch mechanism as before, but with a random embedding
 
-Actual ARC Challenges | Random Rebatch |
+| Actual ARC Challenges | Random Rebatch |
 |---------|---------|
 | ![A](img/generalize/similarity_distribution_raw_embedding_global_mean_similarity_train.png) |  ![B](img/generalize/similarity_distribution_raw_embedding_global_mean_similarity_train_random_rebatch.png) |
 
@@ -312,7 +315,7 @@ Success? Perhaps. We see a large distance between random baseline and population
 
 This time, we depart from our batch-exclusive metrics, and look at the k-nearest neighbors as determined by our new embedding. This is conceptually similar to the rebatching we did previously, but we do it piecemeal by sequence to show the likelihood of selecting batchmates.
 
-Here, in the case of real data, we don't know what the actual curves look like - we just want to know if we can reconstruct the known batches from our grid pair embeddings.
+Here, in the case of real data, we don't know what the actual curves look like, so we can't find the underlying curve similarity for a known sequence. Instead, we just want to know if we can reconstruct the known batches from our grid pair embeddings.
 
 | Enrichment Ratio |
 |---------|
@@ -322,21 +325,48 @@ We see that we are significantly more likely to find batchmates via our nearest 
 
 As a last step, let's do a sanity check by looking at some of the grid pairs ourselves. For this case we **do** rebatch on the learned embedding. Then, we select batches at random and view their grid pairs:
 
-||||||
+|1|2|3|4|5|
 |---------|---------|---------|---------|---------|
 | ![A](img/batch_pairs/batch_pairs0.png) | ![B](img/batch_pairs/batch_pairs1.png) | ![C](img/batch_pairs/batch_pairs2.png)| ![D](img/batch_pairs/batch_pairs3.png)| ![E](img/batch_pairs/batch_pairs4.png)|
-|---------|---------|---------|---------|---------|
+|6|7|8|9|10|
 | ![A](img/batch_pairs/batch_pairs5.png) | ![B](img/batch_pairs/batch_pairs6.png) | ![C](img/batch_pairs/batch_pairs7.png)| ![D](img/batch_pairs/batch_pairs8.png)| ![E](img/batch_pairs/batch_pairs9.png)|
-|---------|---------|---------|---------|---------|
+|11|12|13|14|15|
 | ![A](img/batch_pairs/batch_pairs10.png) | ![B](img/batch_pairs/batch_pairs11.png) | ![C](img/batch_pairs/batch_pairs12.png)| ![D](img/batch_pairs/batch_pairs13.png)| ![E](img/batch_pairs/batch_pairs14.png)|
-|---------|---------|---------|---------|---------|
+|16|17|18|19|20|
 | ![A](img/batch_pairs/batch_pairs15.png) | ![B](img/batch_pairs/batch_pairs16.png) | ![C](img/batch_pairs/batch_pairs17.png)| ![D](img/batch_pairs/batch_pairs18.png)| ![E](img/batch_pairs/batch_pairs19.png)|
 
-Here's my take on the above: out of 20 randomly selected newly-formed batches of 3, 5 or so pass what I would call "the eye test" and my own human intuition. I don't see any groups where all 3 look really cohesive, but I see several where 2 of the 3 grid pairs look like they probably use the same transformation.
+At a glance, out of 20 randomly selected (but not randomly constructed!) batches of 3, 5 or so pass what I would call "the eye test" and my own human intuition. I see only 1 group where all 3 look really cohesive, but I see several where 2 of the 3 grid pairs look like they probably use the same transformation.
 
-That's good news, because when we try to solve ARC challenges, we don't actually need to create valid batches of any particular size. We just need to find nearest neighbors. This level of specificity for a small group of neighbors makes me think the data are valid.
+But let's take a closer look! Below are my own observations, without knowledge of the actual challenges.
+
+1. A, B, both seem like a "zoom in" effect. C does this too but it's more like object selection.
+2. A, B both have a grey line in the center as a relevant border.
+3. B, C are both doing some sort of "line projection".
+4. A, B have similar shapes and an "infill" pattern.
+5. No similarity I can see.
+6. No similarity I can see, maybe color (light blue) but nothing relevant.
+7. No similarity I can see.
+8. No similarity I can see.
+9. No similarity I can see.
+10. B, C seem like they are a progression, plausibly from the same actual batch.
+11. A, C both look like mirror/concatenate operations.
+12. A, B seem like they are a progression, plausibly from the same actual batch.
+13. A, B, C seem plausibly from the same actual batch. If I had to guess, B, C would be training data and A the test.
+14. These look similar but it seems superficial.
+15. A, B, C seem plausibly from the same actual batch.
+16. No similarity I can see.
+17. No similarity I can see.
+18. A, B have the same end state, they seem plausibly from the same batch.
+19. No similarity I can see.
+20. No similarity I can see.
+
+Out of 20, I find relevant similarities in 10. Am I too generous in my assessment of the model's performance? This is left as an exercise for the reader.
+
+I include these because, when we're thinking about clustering related pairs in the context of ARC, my human intuitions and how they match up with my model's performance are a relevant measure of performance. The "System 1" intuition about related information is a way of quickly cutting through noise. **The clustering mechanism is the intuition mechanism for an intelligent system.**
 
 Admittedly, this is not a super precise metric! But it's a good exercise to look with human eyes sometimes and not to simply trust the numbers. It is, after all, a test of man vs. machine.
+
+The good news is that, when we try to solve ARC challenges, we don't actually need to create valid batches of any particular size. We just need to find nearest neighbors. This level of specificity for a small group of neighbors makes me think the data are valid.
 
 Now, the finisher:
 
@@ -346,23 +376,52 @@ If we can find nearest neighbors **in a meaningful way,** that means we know a c
 
 ...
 
-## On The Measure of Intelligence
+## Dynamic DSL
 
-Let's review. The algorithm above has four parts and four trained models:
+We've observed, via the classifier, that a predefined DSL can map to the embedding space. But what if our intelligent system encounters a new situation? It's limited by known operations.
 
-1. We can encode a state into an embedding (Grid Encoder)
-2. We can decode a state transition into a program (Classifier)
-3. We can encode a start, end state into an embedding (Grid Pair/Sequence Encoder)
-4. We can modify a known sequence to make it more like an unknown sequence (Curve Corrector)
+However, a system can expand its DSL continuously using the same approach to embedding diffs.
 
-It seems to me that these four steps can be applied to any domain and thereby furnish us with a coherent philosophy of intelligence, consistent with Chollet's original ARC work. I propose these qualities are universal:
+### Mathematical Formulation
 
-1. For a given state, we can create an embedding ES
-2. For a given embedding diff, we can classify
+Let *E* be our embedding space and *D* be the space of embedding diffs. For any two grid states *s₁*, *s₂*:
 
-### Dynamically Derived DSLs
+```
+e₁ = encode(s₁), e₂ = encode(s₂)
+d = e₂ - e₁ = diff(e₁, e₂)
+```
 
+A DSL operation φ can be defined as:
 
+```
+φ(e) = e + μₖ where:
+  e  = input embedding
+  μₖ = centroid of cluster k in diff space
+  k  = chosen based on nearest-neighbor classification
+```
+
+So we can define our DSL operations in embedding space. But we need to apply them in grid space. We can define a function like so:
+
+```
+f(G₀, Δe) → ΔG where:
+  G₀ = start grid
+  Δe = embedding space diff
+  ΔG = predicted grid space diff
+```
+
+To create these functions, we would need to train a model on the cluster of {start grid, start embedding, end grid, end embedding, grid diff, embedding diff}. Notice these inputs are similar to the classifier's, but where the classifier recognizes a known function, here we create one. Fundamentally, both decode the embedding space into grid space.
+
+### Expanding the Operation Set
+
+We can find new operations in the following ways:
+
+- Identifying new clusters in diff space
+- Combining existing clusters in new ways
+- Splitting existing clusters for finer granularity
+
+Expansion management strategies require further study. Likely there is an optimal ratio of grid variance:embedding variance for any given cluster, as well as absolute difference in grid space and absolute difference in embedding space. I also imagine that there would be "fixed" periods where clusters remain stable followed by "fluid" periods where reclustering is performed. Otherwise, in the course of problem solving, the system would not be able to reliably classify.
+
+The important conclusion here is that **this is a property of any embedding based system.** Properly seeded DSLs will be expandable in most domains.
 
 ## Appendix: Search
 
